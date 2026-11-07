@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colônia: Sobreviva ao Jardim 🐜</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(180deg, #87CEEB 0%, #98D982 40%, #5a3a1a 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10px;
+    color: #2a1a0a;
+    overflow-x: hidden;
+  }
+  #game {
+    max-width: 680px;
+    width: 100%;
+    background: #f5ecd7;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  header {
+    background: linear-gradient(135deg, #6b3e1f, #4a2810);
+    color: #f5ecd7;
+    padding: 12px 16px;
+    text-align: center;
+    position: relative;
+  }
+  header h1 { font-size: 1.3em; letter-spacing: 1px; }
+  header .week { font-size: 0.85em; opacity: 0.9; margin-top: 2px; font-weight: bold; color: #ffd700; }
+  header .mute-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); border: none; border-radius: 8px;
+    color: #f5ecd7; font-size: 1.1em; cursor: pointer; padding: 4px 8px;
+    transition: background 0.2s;
+  }
+  header .mute-btn:hover { background: rgba(255,255,255,0.3); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 10px;
+    background: #e8dcc0;
+  }
+  .stat {
+    background: #fff8e7;
+    border-radius: 10px;
+    padding: 6px 4px;
+    text-align: center;
+    border: 2px solid #c9b48a;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+  }
+  .stat.flash { border-color: #d4a017; transform: scale(1.08); }
+  .stat.flash-bad { border-color: #c04040; transform: scale(1.08); }
+  .stat.danger { border-color: #c04040; background: #ffe8e8; animation: pulseDanger 1.5s infinite; }
+  @keyframes pulseDanger { 0% { box-shadow: 0 0 0 0 rgba(192,64,64,0.4); } 70% { box-shadow: 0 0 0 10px rgba(192,64,64,0); } 100% { box-shadow: 0 0 0 0 rgba(192,64,64,0); } }
+  
+  .stat .icon { font-size: 1.2em; }
+  .stat .label { font-size: 0.6em; text-transform: uppercase; color: #7a6a4a; letter-spacing: 0.5px; }
+  .stat .value { font-size: 1.1em; font-weight: bold; }
+  .stat .bar {
+    height: 5px; background: #ddd; border-radius: 3px; margin-top: 3px; overflow: hidden;
+  }
+  .stat .bar-fill { height: 100%; transition: width 0.5s; }
+  .fill-food { background: #f0a500; }
+  .fill-ants { background: #8b4513; }
+  .fill-nest { background: #a0522d; }
+  .fill-def { background: #4682b4; }
+
+  .nest-view {
+    background: #3a2510;
+    height: 160px;
+    position: relative;
+    overflow: hidden;
+    border-top: 3px solid #2a1a0a;
+    border-bottom: 3px solid #2a1a0a;
+    transition: background 1s;
+  }
+  .nest-view .ground {
+    position: absolute; bottom: 0; width: 100%; height: 40px;
+    background: linear-gradient(180deg, #7a5a3a, #4a2a10);
+  }
+  .tunnel {
+    position: absolute;
+    background: #2a1a0a;
+    border-radius: 4px;
+    transition: all 0.6s;
+  }
+  .chamber {
+    position: absolute;
+    background: radial-gradient(circle at 35% 35%, #4a2a10, #1a0f05);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7em;
+    transition: all 0.6s;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+  }
+  .nest-label {
+    position: absolute; top: 4px; left: 8px; color: #f5ecd7; font-size: 0.65em;
+    opacity: 0.7; text-transform: uppercase; letter-spacing: 1px;
+    z-index: 2;
+  }
+  .nest-level {
+    position: absolute; top: 4px; right: 8px; color: #d4a017; font-size: 0.7em;
+    font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 6px;
+    z-index: 2;
+  }
+  .nest-sky {
+    position: absolute; top: 0; left: 0; width: 100%; height: 30px;
+    background: linear-gradient(180deg, #87CEEB 0%, #a8d8ea 60%, transparent 100%);
+    opacity: 0.5;
+  }
+
+  .event-box {
+    padding: 14px 16px;
+    background: #fff8e7;
+  }
+  .event-title {
+    font-size: 1.05em;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #4a2810;
+  }
+  .event-text {
+    font-size: 0.88em;
+    line-height: 1.45;
+    color: #3a2a1a;
+    margin-bottom: 10px;
+  }
+  .curiosity {
+    font-size: 0.75em;
+    font-style: italic;
+    color: #6a8a3a;
+    background: #eef5e0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border-left: 3px solid #7aaa3a;
+    margin-bottom: 10px;
+  }
+
+  .castes-bar {
+    display: flex; gap: 8px; padding: 8px 14px; background: #e8dcc0;
+    border-bottom: 2px solid #c9b48a; justify-content: center;
+  }
+  .caste-btn {
+    flex: 1; padding: 6px; border: 2px solid #c9b48a; border-radius: 8px;
+    background: #fff8e7; cursor: pointer; text-align: center;
+    transition: all 0.2s; font-family: inherit; color: #2a1a0a;
+  }
+  .caste-btn:hover:not(:disabled) { background: #ffe8a0; border-color: #d4a017; transform: translateY(-2px); }
+  .caste-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .caste-btn .icon { font-size: 1.2em; }
+  .caste-btn .name { font-size: 0.65em; font-weight: bold; display: block; margin-top: 2px; }
+  .caste-btn .count { font-size: 0.75em; color: #6a5a3a; }
+
+  .choices { display: flex; flex-direction: column; gap: 8px; }
+  .choice-btn {
+    text-align: left;
+    padding: 10px 12px;
+    border: 2px solid #c9b48a;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: #2a1a0a;
+    line-height: 1.35;
+    position: relative;
+  }
+  .choice-btn:hover:not(:disabled) { background: #ffe8a0; border-color: #d4a017; transform: translateX(3px); }
+  .choice-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .choice-btn .cost { font-size: 0.8em; color: #8a6a3a; margin-top: 2px; display: block; }
+  .choice-btn.unaffordable { border-color: #d0a0a0; }
+  .choice-btn.unaffordable .cost { color: #c04040; font-weight: bold; }
+  .choice-btn.emergency { background: #fff0e0; border-color: #d4a017; }
+  .choice-btn.positive { border-color: #7aaa3a; background: #f4fcf0; }
+  .choice-btn.positive:hover:not(:disabled) { background: #e0f5d8; border-color: #5a9a2a; }
+  
+  .caste-tag {
+    font-size: 0.7em; padding: 1px 6px; border-radius: 6px; margin-left: 6px;
+    font-weight: normal; background: #e0e0e0; color: #333;
+  }
+  .caste-tag.soldada { background: #f0b8b8; color: #a03030; }
+  .caste-tag.exploradora { background: #b8e0f0; color: #3050a0; }
+  .caste-tag.cultivadora { background: #b8f0b8; color: #30a030; }
+
+  .challenge-box {
+    padding: 14px 16px;
+    background: #e8f0ff;
+    border-top: 3px solid #4682b4;
+  }
+  .challenge-box .q { font-weight: bold; margin-bottom: 10px; font-size: 0.92em; color: #1a3a6a; }
+  .answers { display: flex; flex-direction: column; gap: 6px; }
+  .answer-btn {
+    padding: 9px 12px; border: 2px solid #7aa0d0; border-radius: 10px;
+    background: #fff; cursor: pointer; font-size: 0.85em; text-align: left;
+    font-family: inherit; color: #1a2a4a; transition: all 0.2s;
+  }
+  .answer-btn:hover:not(:disabled) { background: #d0e0ff; border-color: #4682b4; }
+  .answer-btn.correct { background: #b8f0b8; border-color: #3a9a3a; }
+  .answer-btn.wrong { background: #f0b8b8; border-color: #c04040; }
+  .answer-btn:disabled { cursor: default; }
+
+  .feedback {
+    padding: 12px 16px;
+    font-size: 0.88em;
+    line-height: 1.45;
+    border-top: 3px solid #d4a017;
+  }
+  .feedback.good { background: #e8f5d8; }
+  .feedback.bad { background: #f8e0d0; }
+  .feedback .result { font-weight: bold; margin-bottom: 4px; }
+  .feedback .delta { font-size: 0.85em; color: #5a4a3a; margin-top: 4px; }
+
+  .next-btn {
+    display: block; width: calc(100% - 32px); margin: 12px 16px;
+    padding: 12px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, #6b3e1f, #8b5a2b);
+    color: #fff8e7; font-size: 1em; font-weight: bold;
+    cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
+    transition: transform 0.15s;
+  }
+  .next-btn:hover { transform: scale(1.02); }
+  .next-btn:active { transform: scale(0.98); }
+
+  .end-screen {
+    padding: 24px 20px; text-align: center;
+  }
+  .end-screen .grade {
+    font-size: 3em; font-weight: bold; margin: 10px 0;
+  }
+  .end-screen h2 { font-size: 1.5em; margin-bottom: 8px; }
+  .end-screen .summary { font-size: 0.88em; line-height: 1.5; color: #4a3a2a; text-align: left; margin: 12px 0; }
+  .end-screen .summary li { margin-bottom: 4px; }
+  .end-screen ul { padding-left: 20px; }
+  .restart-btn {
+    padding: 12px 28px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, #3a9a3a, #2a7a2a);
+    color: #fff; font-size: 1em; font-weight: bold; cursor: pointer;
+    font-family: inherit; margin-top: 10px;
+  }
+
+  .species-pick { padding: 20px 16px; text-align: center; }
+  .species-pick h2 { margin-bottom: 8px; color: #4a2810; }
+  .species-pick p { font-size: 0.85em; color: #5a4a3a; margin-bottom: 16px; }
+  .species-cards { display: flex; flex-direction: column; gap: 10px; }
+  .species-card {
+    padding: 14px; border: 2px solid #c9b48a; border-radius: 12px;
+    background: #fff8e7; cursor: pointer; font-family: inherit;
+    text-align: left; transition: all 0.2s; color: #2a1a0a;
+  }
+  .species-card:hover { background: #ffe8a0; border-color: #d4a017; transform: scale(1.02); }
+  .species-card .name { font-weight: bold; font-size: 1em; }
+  .species-card .desc { font-size: 0.8em; color: #6a5a3a; margin-top: 4px; }
+
+  .pheromones-bar {
+    display: flex; gap: 8px; padding: 8px 14px; background: #f0e8d0;
+    border-bottom: 2px solid #c9b48a; justify-content: center; min-height: 50px;
+  }
+  .phero-card {
+    width: 45px; height: 45px; border-radius: 8px; background: #fff;
+    border: 2px solid #c9b48a; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; cursor: pointer;
+    transition: all 0.2s; font-size: 1.2em;
+  }
+  .phero-card:hover { transform: translateY(-3px); border-color: #d4a017; }
+  .phero-card .name { font-size: 0.55em; color: #6a5a3a; text-align: center; line-height: 1; margin-top: 2px; }
+  .phero-card.empty { background: #e0d8c8; border-style: dashed; cursor: default; opacity: 0.5; }
+  .phero-card.empty:hover { transform: none; border-color: #c9b48a; }
+
+  #toastContainer {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 3000; display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none; width: 90%; max-width: 400px;
+  }
+  .toast {
+    padding: 10px 16px; border-radius: 10px; font-size: 0.85em;
+    font-weight: bold; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    color: #fff;
+  }
+  .toast.good { background: linear-gradient(135deg, #3a9a3a, #2a7a2a); }
+  .toast.bad { background: linear-gradient(135deg, #c04040, #a02020); }
+  .toast.info { background: linear-gradient(135deg, #4682b4, #2a6a9a); }
+  .toast.gold { background: linear-gradient(135deg, #d4a017, #b08000); }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-20px); } }
+
+  .weather-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 1; opacity: 0; transition: opacity 1s;
+  }
+  .weather-overlay.active { opacity: 1; }
+  .rain-drop {
+    position: absolute; width: 2px; height: 12px; background: rgba(180,210,255,0.7);
+    border-radius: 2px; animation: rainFall linear infinite;
+  }
+  @keyframes rainFall { to { transform: translateY(160px); } }
+
+  .hidden { display: none !important; }
+  
+  .buffs-bar {
+    display: flex; gap: 8px; padding: 6px 14px; background: #e0f0d0;
+    border-bottom: 2px solid #7aaa3a; justify-content: center; flex-wrap: wrap;
+    min-height: 30px; align-items: center;
+  }
+  .buff-tag {
+    font-size: 0.7em; background: #fff; border: 1px solid #7aaa3a;
+    color: #3a6a1a; padding: 2px 8px; border-radius: 10px; font-weight: bold;
+    cursor: help;
+  }
+
+  .diary-toggle {
+    font-size: 0.7em; color: #6a5a3a; cursor: pointer; text-align: center;
+    padding: 4px; user-select: none; text-decoration: underline;
+    background: #e8dcc0;
+  }
+  .diary {
+    max-height: 0; overflow: hidden; transition: max-height 0.4s;
+    background: #f0e8d0; font-size: 0.75em;
+  }
+  .diary.open { max-height: 400px; overflow-y: auto; }
+  .diary-entry {
+    padding: 6px 14px; border-bottom: 1px solid #d8c8a8;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .diary-entry .wk { font-weight: bold; color: #6a4a2a; min-width: 28px; }
+
+  .milestone-bar {
+    display: flex; justify-content: space-between; padding: 4px 10px;
+    background: #3a2510; border-bottom: 2px solid #2a1a0a;
+  }
+  .milestone {
+    width: 18%; height: 6px; border-radius: 3px; background: #5a4a2a;
+    transition: background 0.4s;
+  }
+  .milestone.reached { background: linear-gradient(90deg, #d4a017, #f0c040); box-shadow: 0 0 6px #d4a017; }
+
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center;
+    z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: #fff8e7; padding: 24px; border-radius: 16px; text-align: center;
+    max-width: 300px; width: 90%; transform: scale(0.8); transition: transform 0.3s;
+    border: 4px solid #d4a017; box-shadow: 0 0 30px #d4a017;
+  }
+  .modal-overlay.active .modal-box { transform: scale(1); }
+  .modal-box h3 { color: #d4a017; font-size: 1.4em; margin-bottom: 10px; }
+  .modal-box p { font-size: 0.9em; color: #4a3a2a; margin-bottom: 16px; }
+  .modal-box button {
+    padding: 10px 20px; border: none; border-radius: 8px;
+    background: #d4a017; color: #fff; font-weight: bold; cursor: pointer;
+    font-family: inherit;
+  }
+
+  @media (max-width: 400px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    header h1 { font-size: 1.1em; }
+  }
+</style>
+</head>
+<body>
+<div id="toastContainer"></div>
+
+<div class="modal-overlay" id="levelUpModal">
+  <div class="modal-box">
+    <h3>🌟 NINHO EVOLUIU!</h3>
+    <p id="levelUpText">Sua colônia cresceu e desbloqueou novas habilidades!</p>
+    <button onclick="closeModal()">Continuar</button>
+  </div>
+</div>
+
+<div id="game">
+  <div id="speciesScreen" class="species-pick">
+    <h2>🐜 Escolha sua espécie</h2>
+    <p>Você é a rainha-estrategista. Sobreviva o máximo de semanas que puder!</p>
+    <div class="species-cards">
+      <button class="species-card" onclick="startGame('formiga')">
+        <div class="name">🐜 Formigas-cortadeiras</div>
+        <div class="desc">Equilibradas. +1 Ninho inicial. Cultivam fungos.</div>
+      </button>
+      <button class="species-card" onclick="startGame('abelha')">
+        <div class="name">🐝 Abelhas</div>
+        <div class="desc">Coletoras ágeis. +4 Comida inicial. Polinizam flores.</div>
+      </button>
+      <button class="species-card" onclick="startGame('cupim')">
+        <div class="name">🐛 Cupins</div>
+        <div class="desc">Defensores natos. +2 Defesa inicial. Engenheiros de torres.</div>
+      </button>
+    </div>
+  </div>
+
+  <div id="playScreen" class="hidden">
+    <header>
+      <h1 id="speciesTitle">🐜 Colônia de Formigas</h1>
+      <div class="week" id="weekLabel">Semana 1</div>
+      <button class="mute-btn" id="muteBtn" onclick="toggleMute()" title="Som ligado/desligado">🔊</button>
+    </header>
+
+    <div class="milestone-bar" id="milestoneBar">
+      <div class="milestone" data-week="5"></div>
+      <div class="milestone" data-week="10"></div>
+      <div class="milestone" data-week="15"></div>
+      <div class="milestone" data-week="20"></div>
+      <div class="milestone" data-week="30"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat" id="statBoxFood">
+        <div class="icon">🍯</div>
+        <div class="label">Comida</div>
+        <div class="value" id="statFood">10</div>
+        <div class="bar"><div class="bar-fill fill-food" id="barFood"></div></div>
+      </div>
+      <div class="stat" id="statBoxAnts">
+        <div class="icon">🐜</div>
+        <div class="label">Operárias</div>
+        <div class="value" id="statAnts">10</div>
+        <div class="bar"><div class="bar-fill fill-ants" id="barAnts"></div></div>
+      </div>
+      <div class="stat" id="statBoxNest">
+        <div class="icon">🏠</div>
+        <div class="label">Ninho</div>
+        <div class="value" id="statNest">5</div>
+        <div class="bar"><div class="bar-fill fill-nest" id="barNest"></div></div>
+      </div>
+      <div class="stat" id="statBoxDef">
+        <div class="icon">🛡️</div>
+        <div class="label">Defesa</div>
+        <div class="value" id="statDef">5</div>
+        <div class="bar"><div class="bar-fill fill-def" id="barDef"></div></div>
+      </div>
+    </div>
+
+    <div class="castes-bar" id="castesBar">
+      <button class="caste-btn" id="casteSoldada" onclick="buyCaste('soldada')">
+        <div class="icon">⚔️</div>
+        <div class="name">Soldada</div>
+        <div class="count" id="countSoldada">0</div>
+      </button>
+      <button class="caste-btn" id="casteExploradora" onclick="buyCaste('exploradora')">
+        <div class="icon">🧭</div>
+        <div class="name">Exploradora</div>
+        <div class="count" id="countExploradora">0</div>
+      </button>
+      <button class="caste-btn" id="casteCultivadora" onclick="buyCaste('cultivadora')">
+        <div class="icon">🌿</div>
+        <div class="name">Cultivadora</div>
+        <div class="count" id="countCultivadora">0</div>
+      </button>
+    </div>
+
+    <div class="nest-view" id="nestView">
+      <div class="nest-sky"></div>
+      <div class="nest-label">Visão do ninho</div>
+      <div class="nest-level" id="nestLevelLabel">Nível 1</div>
+      <div class="weather-overlay" id="weatherOverlay"></div>
+      <div class="ground"></div>
+      <div id="nestChambers"></div>
+    </div>
+
+    <div class="pheromones-bar" id="pheromonesBar">
+      <div class="phero-card empty"></div>
+      <div class="phero-card empty"></div>
+      <div class="phero-card empty"></div>
+    </div>
+
+    <div id="eventArea"></div>
+    <button class="next-btn hidden" id="nextBtn" onclick="nextWeek()">Próxima semana ➡️</button>
+
+    <div class="buffs-bar" id="buffsBar"></div>
+    <div class="diary-toggle" onclick="toggleDiary()">📖 Diário da colônia ▾</div>
+    <div class="diary" id="diary"></div>
+  </div>
+
+  <div id="endScreen" class="end-screen hidden"></div>
+</div>
+
+<script>
+let audioCtx = null;
+let muted = false;
+let state = {};
+
+const SPECIES_INFO = {
+  formiga: { name: '🐜 Colônia de Formigas', food: 10, ants: 10, nest: 6, defense: 5 },
+  abelha:  { name: '🐝 Colônia de Abelhas',  food: 14, ants: 10, nest: 5, defense: 5 },
+  cupim:   { name: '🐛 Colônia de Cupins',    food: 10, ants: 10, nest: 5, defense: 7 }
+};
+
+const CASTE_INFO = {
+  soldada: { name: 'Soldada', icon: '⚔️' },
+  exploradora: { name: 'Exploradora', icon: '🧭' },
+  cultivadora: { name: 'Cultivadora', icon: '🌿' }
+};
+
+const PHEROMONE_POOL = [
+  { id: 'reforco', name: 'Reforço', icon: '🛡️', desc: '+5 Defesa imediatamente.' },
+  { id: 'comida', name: 'Rastro', icon: '🍯', desc: '+6 Comida imediatamente.' },
+  { id: 'operarias', name: 'Recrutar', icon: '🐜', desc: '+5 Operárias imediatamente.' },
+  { id: 'sorte', name: 'Sorte', icon: '🍀', desc: 'Próxima ação tem sucesso garantido.' }
+];
+
+// BANCO DE EVENTOS COM GANHOS AUMENTADOS
+const EVENTS = [
+  { id:'primavera', type:'positive', title:'🌸 Primavera chegou!', text:'O jardim está florido e cheio de vida. É a época perfeita para expandir.', weather:'sun',
+    curiosity:'Na primavera, as colônias de insetos costumam dobrar de tamanho.',
+    choices:[
+      { text:'🌱 Cultivar fungos nutritivos', cost:{ants:2}, effect:{food:+6}, risk:0.1, good:'Os fungos cresceram rápido!', bad:'Os fungos não pegaram bem.', buff: { id:'fungos', name:'Fungos Nutritivos', desc:'+2 Comida por semana', food:2 } },
+      { text:'🏠 Expandir o ninho', cost:{ants:3}, effect:{nest:+3}, risk:0.1, good:'O ninho ficou maior!', bad:'A expansão foi lenta.', buff: { id:'expansao', name:'Expansão Constante', desc:'+2 Ninho por semana', nest:2 } },
+      { text:'🍯 Coletar pólen', cost:{ants:1}, effect:{food:+4}, risk:0.0, good:'As operárias trouxeram muito pólen!', bad:'Não encontraram pólen.' }
+    ]},
+  { id:'cogumelo', type:'positive', title:'🍄 Um cogumelo mágico!', text:'Uma colônia de fungos incomum cresceu perto do ninho. Parece comestível e muito nutritiva.', weather:'rain',
+    curiosity:'Alguns fungos estabelecem relações simbióticas com formigas.',
+    choices:[
+      { text:'🍄 Colher o cogumelo', cost:{ants:1}, effect:{food:+7}, risk:0.1, good:'Banquete na colônia!', bad:'O cogumelo era venenoso.', buff: { id:'cogumelo_cont', name:'Cogumelo Contínuo', desc:'+2 Comida por semana', food:2 } },
+      { text:'🌿 Usar o cogumelo para criar uma fazenda', cost:{ants:3}, effect:{nest:+2, food:+4}, risk:0.2, good:'Fazenda de fungos!', bad:'A fazenda não rendeu.', buff: { id:'fazenda_fungos', name:'Fazenda de Fungos', desc:'+4 Comida por semana', food:4 } },
+      { text:'🛡️ Usar o cogumelo como defesa', cost:{ants:2}, effect:{defense:+3}, risk:0.1, good:'O cheiro afasta predadores!', bad:'Não funcionou.', buff: { id:'defesa_fungo', name:'Defesa Fúngica', desc:'+2 Defesa por semana', defense:2 } }
+    ]},
+  { id:'sol', type:'positive', title:'☀️ Sol abençoado!', text:'Um dia ensolarado e perfeito ilumina o jardim. As plantas estão crescendo.', weather:'sun',
+    curiosity:'A luz solar é essencial para a fotossíntese, que gera o alimento das plantas.',
+    choices:[
+      { text:'🍯 Coletar seiva doce das plantas', cost:{ants:2}, effect:{food:+6}, risk:0.1, good:'Seiva deliciosa!', bad:'A seiva secou.' },
+      { text:'🏠 Aquecer os ovos da rainha', cost:{ants:1}, effect:{ants:+6}, risk:0.1, good:'Os ovos eclodiram!', bad:'Os ovos não eclodiram.' },
+      { text:'🌿 Construir uma estufa de fungos', cost:{ants:3, food:1}, effect:{food:+3, nest:+2}, risk:0.1, good:'Estufa pronta!', bad:'A estufa superaqueceu.', buff: { id:'estufa', name:'Estufa Solar', desc:'+2 Comida por semana', food:2 } }
+    ]},
+  { id:'feromonio_abundancia', type:'positive', title:'✨ Feromônio da Abundância!', text:'Um rastro de feromônio antigo e poderoso foi encontrado. Ele leva a uma área intocada de comida.', weather:'sun',
+    curiosity:'Feromônios são mensagens químicas que podem durar dias no ambiente.',
+    choices:[
+      { text:'🍯 Seguir o rastro', cost:{ants:3}, effect:{food:+8}, risk:0.1, good:'Comida em abundância!', bad:'O rastro se perdeu.' },
+      { text:'🐜 Chamar reforços', cost:{food:1}, effect:{ants:+7}, risk:0.1, good:'Muitas operárias novas!', bad:'As operárias não vieram.' },
+      { text:'🛡️ Marcar o território', cost:{ants:2}, effect:{defense:+5, nest:+2}, risk:0.1, good:'Território seguro!', bad:'O território foi invadido.' }
+    ]},
+  { id:'chuva_primavera', type:'positive', title:'🌧️ Chuva de primavera!', text:'Uma chuva leve e constante rega o jardim. É a oportunidade perfeita para coletar água.', weather:'rain',
+    curiosity:'Formigas podem coletar gotas de orvalho para matar a sede da colônia.',
+    choices:[
+      { text:'💧 Coletar gotas de água', cost:{ants:2}, effect:{food:+5, nest:+2}, risk:0.0, good:'Água fresca para todos!', bad:'A água evaporou rápido.' },
+      { text:'🌿 Plantar sementes', cost:{ants:3}, effect:{food:+3}, risk:0.1, good:'As sementes germinaram!', bad:'As sementes apodreceram.', buff: { id:'sementes', name:'Sementes Plantadas', desc:'+2 Comida por semana', food:2 } },
+      { text:'🏠 Reforçar a entrada', cost:{ants:2}, effect:{nest:+4, defense:+2}, risk:0.05, good:'Entrada blindada!', bad:'A água entrou um pouco.' }
+    ]},
+
+  { id:'chuva', type:'normal', title:'🌧️ Uma chuva forte se aproxima!', text:'Nuvens escuras cobrem o jardim. A água pode inundar os túneis do ninho.', weather:'rain',
+    curiosity:'Formigas conseguem sobreviver submersas por até 24 horas.',
+    choices:[
+      { text:'🏠 Reforçar os túneis', cost:{ants:3}, effect:{nest:+4, food:-2}, risk:0.2, good:'Os túneis ficaram firmes!', bad:'Alguns túneis cederam.' },
+      { text:'🍯 Mover a comida', cost:{ants:2}, effect:{food:-3, nest:+2}, risk:0.1, good:'A comida ficou segura!', bad:'Parte da comida foi perdida.' },
+      { text:'🌊 Abrir canais de drenagem', cost:{ants:4, food:1}, effect:{nest:+3, defense:+2}, risk:0.3, good:'A água foi desviada!', bad:'Os canais não funcionaram.' }
+    ]},
+  { id:'sapo', type:'normal', title:'🐸 Um sapo está de olho!', text:'Um sapo enorme se posiciona perto da entrada.', weather:'none',
+    curiosity:'Sapos comem até 100 insetos por dia.',
+    choices:[
+      { text:'🛡️ Formar barreira', cost:{ants:4}, effect:{defense:+3, ants:-1}, risk:0.2, good:'As soldadas intimidaram o sapo!', bad:'O sapo avançou.' },
+      { text:'🍯 Distrair o sapo', cost:{food:3}, effect:{food:-3, ants:+3}, risk:0.1, good:'O sapo foi embora!', bad:'O sapo atacou o ninho.' },
+      { text:'🕳️ Esconder-se', cost:{ants:2}, effect:{nest:+2, food:-2}, risk:0.15, good:'O sapo se cansou.', bad:'O sapo atrapalhou a coleta.' }
+    ]},
+  { id:'joaninha', type:'normal', title:'🐞 Uma joaninha apareceu!', text:'A joaninha come pulgões, mas também pode comer larvas.', weather:'sun',
+    curiosity:'A joaninha come até 50 pulgões por dia.',
+    challenge:{ question:'A joaninha come pulgões. Que relação ecológica é essa?', answers:['Mutualismo','Predação','Comensalismo','Parasitismo'], correct:1, curiosity:'Predação é quando um organismo mata e come outro.' },
+    choices:[
+      { text:'🤝 Fazer aliança', cost:{food:2}, effect:{food:-2, defense:+3}, risk:0.2, good:'A joaninha é uma aliada!', bad:'A joaninha comeu larvas.' },
+      { text:'🍯 Ignorar e coletar', cost:{ants:2}, effect:{food:+5}, risk:0.1, good:'A coleta rendeu!', bad:'Os pulgões atacaram as plantas.' },
+      { text:'🛡️ Expulsar', cost:{ants:3}, effect:{defense:+2, ants:-1}, risk:0.25, good:'A joaninha foi embora.', bad:'O confronto custou caro.' }
+    ]},
+  { id:'matematica', type:'normal', title:'📊 Organizar a coleta!', text:'A rainha precisa calcular quantas folhas chegam ao ninho.', weather:'sun',
+    curiosity:'Formigas cortadeiras carregam até 50 vezes seu peso.',
+    challenge:{ question:'Se 20 operárias trazem 3 folhas cada, quantas chegam?', answers:['23 folhas','60 folhas','40 folhas','80 folhas'], correct:1, curiosity:'20 × 3 = 60 folhas.' },
+    choices:[
+      { text:'🍯 Enviar 20 operárias', cost:{ants:5}, effect:{food:+8}, risk:0.1, good:'60 folhas chegaram!', bad:'Trouxeram menos folhas.' },
+      { text:'🏠 Construir câmara', cost:{ants:4}, effect:{food:+3, nest:+3}, risk:0.15, good:'A câmara ficou pronta!', bad:'A câmara desabou.' },
+      { text:'🛡️ Explorar novas áreas', cost:{ants:3}, effect:{food:+5, defense:+2}, risk:0.2, good:'Novas fontes encontradas!', bad:'A exploração custou operárias.' }
+    ]},
+  { id:'inseticida', type:'normal', title:'⚠️ Inseticida no jardim!', text:'Um cheiro tóxico se espalha. O inseticida pode dizimar a colônia.', weather:'none',
+    curiosity:'Inseticidas afetam o sistema nervoso dos insetos.',
+    choices:[
+      { text:'🕳️ Fechar a entrada', cost:{ants:3}, effect:{nest:+2, food:-3}, risk:0.15, good:'O veneno passou longe!', bad:'O veneno entrou por fissuras.' },
+      { text:'💨 Ventilar os túneis', cost:{ants:5}, effect:{defense:+2, food:-2}, risk:0.3, good:'A ventilação funcionou!', bad:'Espalhou o veneno.' },
+      { text:'🌿 Coletar plantas limpas', cost:{ants:2, food:1}, effect:{food:+5}, risk:0.2, good:'Comida limpa armazenada!', bad:'As folhas estavam contaminadas.' }
+    ]},
+  { id:'metamorfose', type:'normal', title:'🥚 A rainha botou ovos!', text:'Os ovos precisam passar por metamorfose para se tornarem adultas.', weather:'sun',
+    curiosity:'Formigas passam por metamorfose completa.',
+    challenge:{ question:'Qual a ordem correta da metamorfose completa?', answers:['Ovo, pupa, larva, adulto','Ovo, larva, pupa, adulto','Larva, ovo, pupa, adulto','Ovo, adulto, larva, pupa'], correct:1, curiosity:'Ovo, larva, pupa e adulto.' },
+    choices:[
+      { text:'🍯 Alimentar as larvas', cost:{food:3}, effect:{ants:+7}, risk:0.1, good:'Viraram operárias!', bad:'Algumas larvas morreram.' },
+      { text:'🏠 Construir berçário', cost:{ants:3, food:1}, effect:{nest:+3, ants:+3}, risk:0.2, good:'Berçário perfeito!', bad:'O berçário ficou úmido.' },
+      { text:'🛡️ Proteger os ovos', cost:{ants:2}, effect:{defense:+2, ants:+2}, risk:0.15, good:'Os ovos eclodiram!', bad:'Predadores atacaram.' }
+    ]},
+  { id:'formiga_rival', type:'normal', title:'⚔️ Colônia rival invadiu!', text:'Outra colônia está disputando as fontes de comida.', weather:'none',
+    curiosity:'Formigas usam feromônios para recrutar aliadas.',
+    choices:[
+      { text:'🛡️ Atacar com tudo', cost:{ants:5}, effect:{defense:+4, ants:-2}, risk:0.35, good:'A rival recuou!', bad:'Perdemos muitas operárias.' },
+      { text:'🤝 Propor trégua', cost:{food:2}, effect:{food:-2, nest:+2, defense:+2}, risk:0.1, good:'Acordo feito!', bad:'A rival traiu o acordo.' },
+      { text:'🕳️ Recuar e defender', cost:{ants:2}, effect:{nest:+2, food:-2}, risk:0.2, good:'A defesa funcionou!', bad:'Bloquearam nossa entrada.' }
+    ]},
+  { id:'biologia', type:'normal', title:'🔬 Desafio de biologia!', text:'As jovens operárias precisam saber anatomia.', weather:'sun',
+    curiosity:'Insetos têm 6 patas. Aracnídeos têm 8.',
+    challenge:{ question:'Quantos pares de patas tem um inseto?', answers:['2 pares','3 pares','4 pares','5 pares'], correct:1, curiosity:'3 pares (6 patas).' },
+    choices:[
+      { text:'📚 Ensinar anatomia', cost:{ants:2}, effect:{ants:+4, defense:+2}, risk:0.1, good:'Aprenderam rápido!', bad:'A aula foi confusa.' },
+      { text:'🏠 Construir câmara de aprendizado', cost:{ants:3}, effect:{nest:+2, ants:+2}, risk:0.15, good:'Câmara pronta!', bad:'Não foi bem construída.' },
+      { text:'🍯 Focar na coleta', cost:{ants:2}, effect:{food:+4}, risk:0.1, good:'A coleta rendeu.', bad:'Coleta ineficiente.' }
+    ]},
+  { id:'enchente', type:'normal', title:'🌊 Enchente no jardim!', text:'A água está subindo rapidamente.', weather:'rain',
+    curiosity:'Formigas formam balsas vivas para sobreviver.',
+    choices:[
+      { text:'🚣 Balsa de operárias', cost:{ants:4}, effect:{ants:-1, nest:+3, defense:+2}, risk:0.25, good:'A balsa funcionou!', bad:'A balsa se desfez.' },
+      { text:'🏠 Subir para câmaras altas', cost:{ants:3}, effect:{nest:+2, food:-2}, risk:0.15, good:'As câmaras salvaram!', bad:'A água subiu rápido.' },
+      { text:'🍯 Salvar a comida', cost:{ants:2}, effect:{food:+3, nest:-1}, risk:0.2, good:'Comida salva!', bad:'O ninho foi danificado.' }
+    ]},
+  { id:'tamandua', type:'normal', title:'🦣 Tamanduá no bairro!', text:'Um tamanduá faminto está farejando o ninho. Ele quer devorar a colônia!', weather:'sun',
+    curiosity:'Tamanduás comem até 30 mil insetos por dia.',
+    choices:[
+      { text:'🛡️ Defender com todas as forças', cost:{ants:6, defense:2}, effect:{defense:+3, ants:-1}, risk:0.4, good:'O tamanduá desistiu!', bad:'Danos terríveis.' },
+      { text:'🍯 Oferecer comida', cost:{food:4}, effect:{food:-4, nest:+2}, risk:0.2, good:'Ele se encheu e foi embora.', bad:'Ele atacou o ninho.' },
+      { text:'🕳️ Evacuar', cost:{ants:3}, effect:{nest:-1, ants:+2}, risk:0.15, good:'Evacuação perfeita!', bad:'Muitos se perderam.' }
+    ]},
+  { id:'polinizacao', type:'normal', title:'🌸 Flores floresceram!', text:'Comida extra, mas também atrai predadores.', weather:'sun',
+    curiosity:'Abelhas polinizam 70% das culturas agrícolas.',
+    choices:[
+      { text:'🍯 Coletar néctar', cost:{ants:4}, effect:{food:+7}, risk:0.15, good:'Muito alimento!', bad:'Predadores atacaram.' },
+      { text:'🌿 Cultivar fungos', cost:{ants:3, food:2}, effect:{food:+4, nest:+3}, risk:0.2, good:'Fungos prosperaram!', bad:'Não cresceram bem.' },
+      { text:'🛡️ Montar guarda', cost:{ants:2}, effect:{defense:+3, food:+2}, risk:0.1, good:'Tudo protegido!', bad:'A guarda falhou.' }
+    ]},
+  { id:'chinelo', type:'normal', title:'🩴 Vizinho com chinelo!', text:'Um pé gigante se aproxima para destruir o ninho.', weather:'none',
+    curiosity:'Formigas aeram o solo e dispersam sementes.',
+    choices:[
+      { text:'🏃 Fugir para o quintal', cost:{ants:4}, effect:{nest:-1, food:-1, ants:+3}, risk:0.2, good:'Mudança segura!', bad:'Fuga caótica.' },
+      { text:'🛡️ Contra-atacar', cost:{ants:3}, effect:{defense:+3, ants:-1}, risk:0.3, good:'O humano fugiu!', bad:'Ele ficou furioso.' },
+      { text:'🎭 Fingir de morta', cost:{ants:2}, effect:{nest:+2, food:-2}, risk:0.1, good:'Ele foi embora.', bad:'Ele atacou o ninho.' }
+    ]},
+  { id:'pulgoes', type:'normal', title:'🐛 Pulgões atacaram as plantas!', text:'Uma colônia de pulgões está sugando a seiva das plantas. As folhas estão murchando.', weather:'sun',
+    curiosity:'Pulgões se reproduzem assexuadamente e podem gerar clones em massa.',
+    choices:[
+      { text:'🌿 Cultivar fungos no subsolo', cost:{ants:3}, effect:{food:+5}, risk:0.15, good:'Comida farta!', bad:'Os fungos não cresceram.' },
+      { text:'🤝 Fazer um acordo com as formigas', cost:{food:2}, effect:{defense:+3, food:-2}, risk:0.1, good:'Acordo ecológico!', bad:'As formigas ignoraram.' },
+      { text:'🛡️ Ataque em massa', cost:{ants:4}, effect:{food:+4, ants:-1}, risk:0.25, good:'Pulgões expulsos!', bad:'Muitas baixas.' }
+    ]},
+  { id:'aranha', type:'normal', title:'🕷️ Uma aranha teceu uma teia!', text:'Uma aranha construiu uma teia na entrada do ninho. Ela captura qualquer inseto que passe.', weather:'none',
+    curiosity:'Aranhas produzem teias com seda mais forte que o aço.',
+    choices:[
+      { text:'🛡️ Atacar com soldadas', cost:{ants:4}, effect:{defense:+3, ants:-1}, risk:0.3, good:'Aranha derrotada!', bad:'Perdemos soldadas.' },
+      { text:'🏃 Desviar pelo caminho alternativo', cost:{ants:2}, effect:{food:-2, nest:+2}, risk:0.15, good:'Caminho seguro!', bad:'O caminho era mais longo.' },
+      { text:'🍯 Usar larvas como isca', cost:{food:2}, effect:{food:-2, ants:+4}, risk:0.2, good:'A aranha se distraiu!', bad:'A isca não funcionou.' }
+    ]},
+  { id:'besouro', type:'normal', title:'🪲 Um besouro gigante apareceu!', text:'Um besouro enorme está escavando perto do ninho. Ele pode destruir os túneis.', weather:'sun',
+    curiosity:'O besouro-rinoceronte pode carregar 850 vezes seu peso.',
+    choices:[
+      { text:'🛡️ Formar um escudo de soldadas', cost:{ants:3}, effect:{defense:+3}, risk:0.2, good:'O besouro desviou!', bad:'Ele destruiu parte do ninho.' },
+      { text:'🏠 Reforçar as paredes', cost:{ants:2}, effect:{nest:+3, food:-1}, risk:0.1, good:'Paredes reforçadas!', bad:'As paredes não resistiram.' },
+      { text:'🍯 Atrair o besouro para longe', cost:{food:3}, effect:{food:-3, ants:+3}, risk:0.15, good:'Besouro distraído!', bad:'O besouro voltou furioso.' }
+    ]},
+  { id:'vento', type:'normal', title:'💨 Um vento forte varreu o jardim!', text:'Ventos violentos podem espalhar as operárias para longe do ninho.', weather:'rain',
+    curiosity:'Formigas agarram-se umas às outras para não serem levadas pelo vento.',
+    choices:[
+      { text:'🏠 Recolher todas para o ninho', cost:{ants:3}, effect:{nest:+3, food:-1}, risk:0.1, good:'Todos seguros!', bad:'Alguns se perderam.' },
+      { text:'🛡️ Abrigar-se atrás de pedras', cost:{ants:2}, effect:{defense:+2, food:-2}, risk:0.15, good:'Abrigo seguro!', bad:'O abrigo não aguentou.' },
+      { text:'🏃 Continuar a coleta', cost:{ants:4}, effect:{food:+5, ants:-1}, risk:0.35, good:'Coleta de ventania!', bad:'Vento levou operárias.' }
+    ]},
+  { id:'calor', type:'normal', title:'☀️ Calor extremo no jardim!', text:'O sol está escaldante. A água está evaporando e o ninho está superaquecendo.', weather:'sun',
+    curiosity:'Formigas desidratam rapidamente em temperaturas acima de 40°C.',
+    choices:[
+      { text:'💧 Cavar poços de água', cost:{ants:4}, effect:{food:-2, nest:+3}, risk:0.15, good:'Água encontrada!', bad:'Não encontraram água.' },
+      { text:'🏠 Ventilar o ninho com batidas de asas', cost:{ants:3}, effect:{defense:+2, food:-1}, risk:0.2, good:'O ninho refrescou!', bad:'A ventilação falhou.' },
+      { text:'🍯 Estocar comida para a seca', cost:{ants:2}, effect:{food:+5}, risk:0.1, good:'Comida estocada!', bad:'A comida estragou.' }
+    ]},
+  { id:'passaro', type:'normal', title:'🐦 Um pássaro está caçando!', text:'Um pássaro faminto está atacando o jardim. Ele pode levar várias operárias de uma vez.', weather:'sun',
+    curiosity:'Pássaros podem comer até 500 insetos por dia para alimentar seus filhotes.',
+    choices:[
+      { text:'🏠 Esconder-se no subsolo', cost:{ants:4}, effect:{nest:+3, food:-2}, risk:0.1, good:'Escondidos em segurança!', bad:'Pássaro comeu as larvas.' },
+      { text:'🛡️ Formar um escudo vivo', cost:{ants:3}, effect:{defense:+3, ants:-1}, risk:0.3, good:'Pássaro confuso!', bad:'Ele atacou a colônia.' },
+      { text:'🍯 Usar iscas para distrair', cost:{food:3}, effect:{food:-3, ants:+4}, risk:0.15, good:'Pássaro enganado!', bad:'O pássaro comeu a isca e atacou.' }
+    ]},
+  { id:'vagalume', type:'normal', title:'✨ Vaga-lumes iluminaram o jardim!', text:'À noite, vaga-lumes aparecem. Eles são belos, mas algumas larvas são predadoras.', weather:'none',
+    curiosity:'Vaga-lumes produzem luz fria, sem emitir calor (bioluminescência).',
+    choices:[
+      { text:'🍯 Coletar insetos atraídos pela luz', cost:{ants:3}, effect:{food:+6}, risk:0.15, good:'Banquete noturno!', bad:'Luzes confundiram as operárias.' },
+      { text:'🛡️ Montar guarda noturna', cost:{ants:2}, effect:{defense:+3, food:-1}, risk:0.1, good:'Noite protegida!', bad:'Vaga-lumes eram predadores.' },
+      { text:'🏠 Recolher-se cedo', cost:{ants:1}, effect:{nest:+2, food:-1}, risk:0.1, good:'Descanso seguro!', bad:'Fome durante a noite.' }
+    ]},
+  { id:'larva_mosquito', type:'normal', title:'🦟 Larvas de mosquito na água!', text:'A água acumulada atraiu mosquitos. As larvas são uma ameaça aos ovos da colônia.', weather:'rain',
+    curiosity:'Mosquitos são responsáveis por mais mortes humanas do que qualquer outro animal.',
+    choices:[
+      { text:'🌿 Drenar a água parada', cost:{ants:4}, effect:{nest:+3, food:-2}, risk:0.2, good:'Água drenada!', bad:'A drenagem não funcionou.' },
+      { text:'🛡️ Atacar as larvas', cost:{ants:3}, effect:{defense:+2, ants:-1}, risk:0.15, good:'Larvas eliminadas!', bad:'As larvas resistiram.' },
+      { text:'🍯 Coletar as larvas como comida', cost:{ants:2}, effect:{food:+5}, risk:0.25, good:'Comida nutritiva!', bad:'Larvas contaminaram a comida.' }
+    ]}
+];
+
+function getRandomEvent() {
+  const availablePositives = EVENTS.filter(e => e.type === 'positive' && !state.usedEvents.includes(e.id));
+  const availableNormals = EVENTS.filter(e => e.type === 'normal' && !state.usedEvents.includes(e.id));
+  
+  let positiveChance = 0.4;
+  if (state.week > 10) positiveChance = 0.3;
+  if (state.week > 20) positiveChance = 0.2;
+  if (state.week > 30) positiveChance = 0.1;
+  
+  let pool = [];
+  
+  if (availablePositives.length > 0 && Math.random() < positiveChance) {
+    pool = availablePositives;
+  } else if (availableNormals.length > 0) {
+    pool = availableNormals;
+  } else {
+    pool = EVENTS.filter(e => !state.usedEvents.includes(e.id));
+    if (pool.length === 0) { state.usedEvents = []; pool = EVENTS; }
+  }
+  
+  const ev = pool[Math.floor(Math.random() * pool.length)];
+  state.usedEvents.push(ev.id);
+  return ev;
+}
+
+function initAudio() { if (!audioCtx) try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
+function playTone(freq, dur, type='sine', vol=0.08, delay=0) {
+  if (muted || !audioCtx) return;
+  const t = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(vol, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination); osc.start(t); osc.stop(t + dur);
+}
+
+const SFX = {
+  click: () => playTone(600, 0.06, 'square', 0.04),
+  good:  () => { playTone(523, 0.1, 'sine', 0.07); playTone(659, 0.1, 'sine', 0.07, 0.08); playTone(784, 0.18, 'sine', 0.07, 0.16); },
+  bad:   () => { playTone(300, 0.15, 'sawtooth', 0.05); playTone(200, 0.25, 'sawtooth', 0.05, 0.12); },
+  week:  () => { playTone(440, 0.1, 'triangle', 0.06); playTone(660, 0.12, 'triangle', 0.06, 0.1); },
+  levelUp: () => { [523, 659, 784, 1047, 1318].forEach((f,i) => playTone(f, 0.2, 'sine', 0.08, i*0.08)); },
+  win:   () => { [523,659,784,1047].forEach((f,i) => playTone(f, 0.25, 'sine', 0.08, i*0.12)); },
+  lose:  () => { [400,350,300,220].forEach((f,i) => playTone(f, 0.3, 'sawtooth', 0.06, i*0.15)); }
+};
+
+function toggleMute() { muted = !muted; document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊'; }
+
+function showToast(msg, type='info', duration=2400) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  t.style.animation = `toastIn 0.3s ease, toastOut 0.3s ease ${duration/1000}s forwards`;
+  c.appendChild(t); setTimeout(() => t.remove(), duration + 400);
+}
+
+function freshState(species) {
+  return {
+    species, week: 1, food: SPECIES_INFO[species].food, ants: SPECIES_INFO[species].ants,
+    nest: SPECIES_INFO[species].nest, defense: SPECIES_INFO[species].defense,
+    log: [], usedEvents: [], currentEvent: null, phase: 'event',
+    nestLevel: 1, castes: { soldada: 0, exploradora: 0, cultivadora: 0 },
+    pheromones: [], pendingChoice: null, pheromoneActive: null,
+    buffs: []
+  };
+}
+
+function startGame(species) {
+  initAudio();
+  SFX.click();
+  state = freshState(species);
+  document.getElementById('speciesScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+  document.getElementById('speciesTitle').textContent = SPECIES_INFO[species].name;
+  document.getElementById('eventArea').innerHTML = '<div style="padding:20px;text-align:center;">Carregando evento...</div>';
+  render();
+  loadEvent();
+}
+
+function render() {
+  ['food', 'ants', 'nest', 'defense'].forEach(k => {
+    const el = document.getElementById('stat' + k.charAt(0).toUpperCase() + k.slice(1));
+    const bar = document.getElementById('bar' + k.charAt(0).toUpperCase() + k.slice(1));
+    const box = document.getElementById('statBox' + k.charAt(0).toUpperCase() + k.slice(1));
+    
+    if (el) el.textContent = Math.max(0, state[k]);
+    if (bar) bar.style.width = Math.min(100, Math.max(0, state[k] / 40 * 100)) + '%'; // Escala visual aumentada para 40
+    
+    if (box) {
+      if (k === 'food' && state.food <= 2) box.classList.add('danger');
+      else if (k === 'ants' && state.ants <= 2) box.classList.add('danger');
+      else box.classList.remove('danger');
+    }
+  });
+  
+  document.getElementById('weekLabel').textContent = `Semana ${state.week} (Infinito)`;
+  document.getElementById('countSoldada').textContent = state.castes.soldada;
+  document.getElementById('countExploradora').textContent = state.castes.exploradora;
+  document.getElementById('countCultivadora').textContent = state.castes.cultivadora;
+  
+  // Custo dinâmico de recrutamento (aumenta levemente se o exército for gigante)
+  let recruitCost = 3;
+  if (state.ants > 20) recruitCost = 4;
+  if (state.ants > 40) recruitCost = 5;
+
+  document.getElementById('casteSoldada').disabled = state.ants < recruitCost;
+  document.getElementById('casteExploradora').disabled = state.ants < recruitCost;
+  document.getElementById('casteCultivadora').disabled = state.ants < recruitCost;
+
+  const pheroBar = document.getElementById('pheromonesBar');
+  pheroBar.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    if (state.pheromones[i]) {
+      const p = state.pheromones[i];
+      pheroBar.innerHTML += `
+        <div class="phero-card" onclick="usePheromone(${i})" title="${p.desc}">
+          ${p.icon}<div class="name">${p.name}</div>
+        </div>`;
+    } else {
+      pheroBar.innerHTML += `<div class="phero-card empty"></div>`;
+    }
+  }
+
+  const buffsBar = document.getElementById('buffsBar');
+  buffsBar.innerHTML = '';
+  if (state.buffs.length === 0) {
+    buffsBar.innerHTML = '<span style="font-size:0.7em;color:#8a9a7a;font-style:italic;">Nenhum bônus passivo ainda...</span>';
+  } else {
+    state.buffs.forEach(b => {
+      buffsBar.innerHTML += `<span class="buff-tag" title="${b.desc}">${b.name}</span>`;
+    });
+  }
+
+  document.getElementById('nestLevelLabel').textContent = `Nível ${state.nestLevel}`;
+  const nestView = document.getElementById('nestView');
+  if (state.nestLevel >= 4) nestView.style.background = '#1a0f05';
+  else if (state.nestLevel >= 3) nestView.style.background = '#2a1a0a';
+  else if (state.nestLevel >= 2) nestView.style.background = '#3a2510';
+  else nestView.style.background = '#4a3010';
+
+  renderNest();
+  updateMilestones();
+}
+
+function renderNest() {
+  const container = document.getElementById('nestChambers');
+  if (!container) return;
+  container.innerHTML = '';
+  const size = Math.min(18, Math.floor(state.nest / 1.5) + (state.nestLevel * 2));
+  for (let i = 0; i < size; i++) {
+    const ch = document.createElement('div');
+    ch.className = 'chamber';
+    ch.style.width = (8 + Math.random() * 7) + 'px';
+    ch.style.height = (8 + Math.random() * 7) + 'px';
+    ch.style.left = (5 + Math.random() * 90) + '%';
+    ch.style.top = (25 + Math.random() * 55) + '%';
+    container.appendChild(ch);
+  }
+  for (let i = 0; i < Math.min(12, size); i++) {
+    const t = document.createElement('div');
+    t.className = 'tunnel';
+    t.style.width = '3px';
+    t.style.height = (15 + Math.random() * 25) + 'px';
+    t.style.left = (10 + Math.random() * 80) + '%';
+    t.style.top = (30 + Math.random() * 40) + '%';
+    t.style.transform = `rotate(${Math.random() * 60 - 30}deg)`;
+    container.appendChild(t);
+  }
+}
+
+function updateMilestones() {
+  document.querySelectorAll('.milestone').forEach(m => {
+    m.classList.toggle('reached', state.week >= parseInt(m.dataset.week));
+  });
+}
+
+function buyCaste(type) {
+  let recruitCost = 3;
+  if (state.ants > 20) recruitCost = 4;
+  if (state.ants > 40) recruitCost = 5;
+
+  if (state.ants < recruitCost) { showToast(`❌ Precisa de ${recruitCost} operárias!`, 'bad'); return; }
+  SFX.click();
+  state.ants -= recruitCost;
+  state.castes[type]++;
+  
+  // BÔNUS DE CASTAS AUMENTADO
+  if (type === 'soldada') state.defense += 2;
+  if (type === 'cultivadora') state.food += 2;
+  
+  showToast(`${CASTE_INFO[type].icon} ${CASTE_INFO[type].name} recrutada!`, 'info');
+  render();
+}
+
+function usePheromone(idx) {
+  const p = state.pheromones[idx];
+  if (!p) return;
+  SFX.click();
+  
+  if (p.id === 'reforco') { state.defense += 8; showToast('🛡️ +8 Defesa!', 'good'); }
+  if (p.id === 'comida') { state.food += 10; showToast('🍯 +10 Comida!', 'good'); }
+  if (p.id === 'operarias') { state.ants += 8; showToast('🐜 +8 Operárias!', 'good'); }
+  if (p.id === 'sorte') { state.pheromoneActive = 'sorte'; showToast('🍀 Próxima ação garantida!', 'gold'); }
+
+  state.pheromones.splice(idx, 1);
+  render();
+}
+
+function setWeather(type) {
+  const ov = document.getElementById('weatherOverlay');
+  if (!ov) return;
+  ov.innerHTML = ''; ov.classList.remove('active');
+  if (type === 'rain') {
+    ov.classList.add('active');
+    for (let i = 0; i < 18; i++) {
+      const d = document.createElement('div');
+      d.className = 'rain-drop';
+      d.style.left = (Math.random() * 100) + '%';
+      d.style.top = (-Math.random() * 40) + 'px';
+      d.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+      d.style.animationDelay = (Math.random() * 0.8) + 's';
+      ov.appendChild(d);
+    }
+  }
+}
+
+function loadEvent() {
+  const ev = getRandomEvent();
+  state.currentEvent = ev;
+  state.phase = 'event';
+  setWeather(ev.weather || 'none');
+  
+  if (state.pheromones.length < 3 && Math.random() < 0.5) { // Aumentada chance de feromônio
+    const p = PHEROMONE_POOL[Math.floor(Math.random() * PHEROMONE_POOL.length)];
+    state.pheromones.push(p);
+    showToast(`✨ Feromônio: ${p.icon} ${p.name}`, 'gold', 3000);
+  }
+  
+  render();
+  showEvent(ev);
+}
+
+function canAfford(cost) {
+  return (state.food >= (cost.food || 0)) && (state.ants >= (cost.ants || 0)) &&
+         (state.nest >= (cost.nest || 0)) && (state.defense >= (cost.defense || 0));
+}
+
+function getEffectiveRisk(baseRisk) {
+  let r = baseRisk;
+  const reduction = Math.min(1, state.castes.exploradora * 0.5);
+  r = r * (1 - reduction);
+  if (state.pheromoneActive === 'sorte') return 0;
+  return r;
+}
+
+function showEvent(ev) {
+  const area = document.getElementById('eventArea');
+  if (!area) return;
+  
+  let allUnaffordable = true;
+  ev.choices.forEach(c => { if (canAfford(c.cost)) allUnaffordable = false; });
+  
+  let html = `<div class="event-box">
+      <div class="event-title">${ev.title}</div>
+      <div class="event-text">${ev.text}</div>
+      <div class="curiosity">💡 ${ev.curiosity}</div>
+      <div class="choices" id="choicesList">`;
+      
+  ev.choices.forEach((c, i) => {
+    let costStr = [];
+    if (c.cost.food) costStr.push(`${c.cost.food} Comida`);
+    if (c.cost.ants) costStr.push(`${c.cost.ants} Operárias`);
+    if (c.cost.nest) costStr.push(`${c.cost.nest} Ninho`);
+    if (c.cost.defense) costStr.push(`${c.cost.defense} Defesa`);
+    
+    const costText = costStr.length ? `Custo: ${costStr.join(' | ')}` : 'Sem custo';
+    const afford = canAfford(c.cost);
+    
+    let casteTag = '';
+    if (c.text.includes('🛡️')) casteTag = '<span class="caste-tag soldada">+Defesa</span>';
+    if (c.text.includes('🍯') || c.text.includes('🌿')) casteTag = '<span class="caste-tag cultivadora">+Comida</span>';
+    if (c.text.includes('🏃') || c.text.includes('🕳️')) casteTag = '<span class="caste-tag exploradora">-Risco</span>';
+    
+    let buffTag = c.buff ? '<span class="caste-tag" style="background:#d0f0c0;color:#2a6a1a;">+Bônus Passivo</span>' : '';
+    
+    const posClass = (ev.type === 'positive' && afford) ? 'positive' : '';
+
+    html += `<button class="choice-btn ${afford ? posClass : 'unaffordable'}" ${afford ? '' : 'disabled'} onclick="chooseOption(${i})">
+      ${c.text} ${casteTag} ${buffTag}<span class="cost">${costText}${afford ? '' : ' — insuficiente'}</span>
+    </button>`;
+  });
+  
+  if (allUnaffordable) {
+    html += `<button class="choice-btn emergency" onclick="chooseEmergency()">
+      🆘 Mendigar e catar restos<br>
+      <span class="cost">Custo: Nenhum. Recupera um pouco de comida, mas perde tempo e operárias.</span>
+    </button>`;
+  }
+  
+  html += `</div></div>`;
+  area.innerHTML = html;
+  document.getElementById('nextBtn').classList.add('hidden');
+}
+
+function chooseOption(idx) {
+  SFX.click();
+  const ev = state.currentEvent;
+  const choice = ev.choices[idx];
+  if (!canAfford(choice.cost)) return;
+
+  if (choice.cost.food) state.food -= choice.cost.food;
+  if (choice.cost.ants) state.ants -= choice.cost.ants;
+  if (choice.cost.nest) state.nest -= choice.cost.nest;
+  if (choice.cost.defense) state.defense -= choice.cost.defense;
+
+  if (ev.challenge) {
+    showChallenge(ev, choice);
+  } else {
+    resolveChoice(ev, choice, true);
+  }
+}
+
+function chooseEmergency() {
+  SFX.bad();
+  state.food += 2;
+  state.ants = Math.max(1, state.ants - 1);
+  
+  document.getElementById('eventArea').innerHTML = `
+    <div class="feedback bad">
+      <div class="result">🆘 Emergência!</div>
+      <div>Suas operárias saíram em busca de restos e conseguiram +2 Comida. Uma operária não resistiu.</div>
+      <div class="delta">+2 Comida | -1 Operária</div>
+    </div>`;
+    
+  state.log.push({ week: state.week, event: 'Emergência!', choice: 'Catar restos', success: true, delta: { food: 2, ants: -1 } });
+  
+  render();
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
+
+function showChallenge(ev, choice) {
+  state.phase = 'challenge';
+  state.pendingChoice = choice;
+  const area = document.getElementById('eventArea');
+  const ch = ev.challenge;
+  let html = `<div class="challenge-box">
+      <div class="q">🧠 ${ch.question}</div>
+      <div class="answers" id="answersList">`;
+  ch.answers.forEach((a, i) => {
+    html += `<button class="answer-btn" onclick="answerChallenge(${i})">${a}</button>`;
+  });
+  html += `</div></div>`;
+  area.innerHTML = html;
+}
+
+function answerChallenge(idx) {
+  SFX.click();
+  const ev = state.currentEvent;
+  const ch = ev.challenge;
+  const correct = idx === ch.correct;
+  
+  document.querySelectorAll('.answer-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === ch.correct) btn.classList.add('correct');
+    if (i === idx && !correct) btn.classList.add('wrong');
+  });
+
+  setTimeout(() => resolveChoice(ev, state.pendingChoice, correct, ch.curiosity), 800);
+}
+
+function resolveChoice(ev, choice, isChallengeSuccess, challengeCuriosity) {
+  let actionSuccess = isChallengeSuccess;
+  let risk = getEffectiveRisk(choice.risk);
+  
+  if (!ev.challenge) {
+    actionSuccess = Math.random() >= risk;
+  } else {
+    if (!isChallengeSuccess) actionSuccess = Math.random() >= risk;
+  }
+  
+  if (state.pheromoneActive === 'sorte') state.pheromoneActive = null;
+
+  let delta = { food: 0, ants: 0, nest: 0, defense: 0 };
+  let casteBonusText = '';
+  
+  if (actionSuccess) {
+    for (let k in choice.effect) delta[k] = choice.effect[k];
+    
+    // BÔNUS DE CASTAS (Agora +2 por unidade)
+    if (state.castes.soldada > 0 && (delta.defense > 0 || choice.text.includes('🛡️'))) {
+      const bonus = state.castes.soldada * 2;
+      delta.defense += bonus;
+      casteBonusText = `⚔️ Soldadas: +${bonus} Defesa extra!`;
+    }
+    if (state.castes.cultivadora > 0 && (delta.food > 0 || choice.text.includes('🍯'))) {
+      const bonus = state.castes.cultivadora * 2;
+      delta.food += bonus;
+      casteBonusText += (casteBonusText ? ' ' : '') + `🌿 Cultivadoras: +${bonus} Comida extra!`;
+    }
+  } else {
+    for (let k in choice.effect) {
+      let v = choice.effect[k];
+      delta[k] = v > 0 ? Math.floor(v / 2) : Math.ceil(v / 2);
+    }
+  }
+  
+  for (let k in delta) state[k] = Math.max(0, state[k] + delta[k]);
+
+  let bonusText = '';
+  if (state.species === 'formiga' && state.food > 15) { state.nest += 1; delta.nest += 1; bonusText = '🐜 Bônus de fungos: +1 Ninho!'; }
+  if (state.species === 'abelha') { state.food += 2; delta.food += 2; bonusText = '🐝 Polinização: +2 Comida!'; }
+  if (state.species === 'cupim' && state.nest > 10) { state.defense += 2; delta.defense += 2; bonusText = '🐛 Engenharia: +2 Defesa!'; }
+
+  let buffText = '';
+  if (actionSuccess && choice.buff) {
+    state.buffs.push(choice.buff);
+    buffText = `🌟 Bênção Ativada: ${choice.buff.name} (${choice.buff.desc})`;
+  }
+
+  let resultText = actionSuccess ? '✅ ' + choice.good : '❌ ' + choice.bad;
+  if (!actionSuccess && ev.challenge) resultText = '❌ Resposta errada! ' + choice.bad;
+
+  let deltaStr = [];
+  const icons = { food: '🍯', ants: '🐜', nest: '🏠', defense: '🛡️' };
+  const names = { food: 'Comida', ants: 'Operárias', nest: 'Ninho', defense: 'Defesa' };
+  for (let k in delta) if (delta[k] !== 0) deltaStr.push(`${delta[k] > 0 ? '+' : ''}${delta[k]} ${icons[k]} ${names[k]}`);
+
+  document.getElementById('eventArea').innerHTML = `
+    <div class="feedback ${actionSuccess ? 'good' : 'bad'}">
+      <div class="result">${resultText}</div>
+      ${challengeCuriosity ? `<div class="curiosity" style="margin:8px 0;">💡 ${challengeCuriosity}</div>` : ''}
+      <div class="delta">${deltaStr.join(' | ') || 'Sem alterações'}</div>
+      ${casteBonusText ? `<div class="delta" style="color:#3050a0;font-weight:bold;">${casteBonusText}</div>` : ''}
+      ${bonusText ? `<div class="delta" style="color:#6a8a3a;font-weight:bold;">${bonusText}</div>` : ''}
+      ${buffText ? `<div class="delta" style="color:#d4a017;font-weight:bold;">${buffText}</div>` : ''}
+    </div>`;
+
+  if (actionSuccess) SFX.good(); else SFX.bad();
+
+  if (state.ants <= 0 && state.food <= 0) {
+    setTimeout(() => endGame(true), 1000); return;
+  }
+
+  state.log.push({ week: state.week, event: ev.title, choice: choice.text, success: actionSuccess, delta: { ...delta } });
+  
+  checkNestLevel();
+  render();
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
+
+function checkNestLevel() {
+  let newLevel = state.nestLevel;
+  if (state.nest >= 35) newLevel = 4;
+  else if (state.nest >= 25) newLevel = 3;
+  else if (state.nest >= 15) newLevel = 2;
+
+  if (newLevel > state.nestLevel) {
+    state.nestLevel = newLevel;
+    SFX.levelUp();
+    document.getElementById('levelUpText').textContent = `Seu ninho alcançou o Nível ${newLevel}! As câmaras estão maiores e mais profundas.`;
+    document.getElementById('levelUpModal').classList.add('active');
+  }
+}
+
+function closeModal() {
+  SFX.click();
+  document.getElementById('levelUpModal').classList.remove('active');
+}
+
+function nextWeek() {
+  SFX.week();
+  state.week++;
+  
+  let consumptionRate = 4; 
+  if (state.week > 5) consumptionRate = 3.5;
+  if (state.week > 10) consumptionRate = 3;
+  if (state.week > 20) consumptionRate = 2.5;
+  if (state.week > 30) consumptionRate = 2;
+
+  const consumption = Math.floor(state.ants / consumptionRate);
+  state.food = Math.max(0, state.food - consumption);
+  if (consumption > 0) showToast(`🍽️ Consumo (Semana ${state.week}): -${consumption} 🍯`, 'info', 1800);
+
+  if (state.food <= 0 && state.ants > 0) {
+    const starved = Math.min(state.ants, Math.ceil(state.ants / 3));
+    state.ants = Math.max(0, state.ants - starved);
+    showToast(`💀 Fome! -${starved} 🐜`, 'bad', 2500);
+    state.log.push({ week: state.week - 1, event: 'Fome!', choice: 'Consumo semanal', success: false, delta: { food: -consumption, ants: -starved } });
+  }
+  
+  // APLICAR BÔNUS PASSIVOS DAS BÊNÇÃOS
+  if (state.buffs.length > 0) {
+    let buffSummary = [];
+    state.buffs.forEach(b => {
+      if (b.food) { state.food += b.food; buffSummary.push(`+${b.food}🍯`); }
+      if (b.ants) { state.ants += b.ants; buffSummary.push(`+${b.ants}🐜`); }
+      if (b.nest) { state.nest += b.nest; buffSummary.push(`+${b.nest}🏠`); }
+      if (b.defense) { state.defense += b.defense; buffSummary.push(`+${b.defense}🛡️`); }
+    });
+    if (buffSummary.length > 0) {
+      showToast(`🌟 Bênçãos: ${buffSummary.join(' ')}`, 'gold', 3000);
+    }
+  }
+
+  if (state.ants <= 0 && state.food <= 0) {
+    setTimeout(() => endGame(true), 1000); return;
+  }
+
+  render();
+  loadEvent();
+}
+
+function toggleDiary() {
+  document.getElementById('diary').classList.toggle('open');
+}
+
+function renderDiary() {
+  const d = document.getElementById('diary');
+  if (!state.log || state.log.length === 0) {
+    d.innerHTML = '<div class="diary-entry"><span style="font-style:italic;color:#9a8a6a;">O diário está vazio…</span></div>';
+    return;
+  }
+  d.innerHTML = state.log.slice().reverse().map(l =>
+    `<div class="diary-entry"><span class="wk">S${l.week}</span><span>${l.success ? '✅' : '❌'}</span><span>${l.event} — ${l.choice}</span></div>`
+  ).join('');
+}
+
+function endGame(died = false) {
+  document.getElementById('playScreen').classList.add('hidden');
+  const end = document.getElementById('endScreen');
+  end.classList.remove('hidden');
+
+  let bestWeek = parseInt(localStorage.getItem('coloniaBestWeek') || '0');
+  let isNewRecord = false;
+  
+  if (died) {
+    if (state.week > bestWeek) {
+      bestWeek = state.week;
+      localStorage.setItem('coloniaBestWeek', bestWeek);
+      isNewRecord = true;
+    }
+  }
+
+  const totalScore = state.food + state.ants + state.nest + state.defense + (state.nestLevel * 10) + (state.castes.soldada + state.castes.exploradora + state.castes.cultivadora) * 2 + (state.buffs.length * 5);
+  
+  let grade, gradeColor, title, message;
+
+  if (died || state.ants <= 0) {
+    grade = '💀'; gradeColor = '#c04040'; title = 'Colônia Extinta';
+    message = 'Sua colônia não resistiu e foi dizimada pelos perigos do jardim. A natureza é implacável!';
+    SFX.lose();
+  } else {
+    grade = '?'; gradeColor = '#333'; title = 'Fim Inesperado';
+    message = 'O jogo encerrou.';
+  }
+
+  const successes = state.log.filter(l => l.success).length;
+  
+  let recordHtml = '';
+  if (isNewRecord) {
+    recordHtml = `<div style="color:#d4a017; font-weight:bold; font-size:1.1em; margin:10px 0;">🏆 NOVO RECORDE PESSOAL! 🏆</div>`;
+  } else {
+    recordHtml = `<div style="color:#6a5a3a; margin:10px 0;">Seu recorde é de <strong>${bestWeek} semanas</strong>.</div>`;
+  }
+
+  end.innerHTML = `
+    <h2>${title}</h2>
+    <div class="grade" style="color:${gradeColor}">${grade}</div>
+    <p style="font-size:0.9em;color:#5a4a3a;margin-bottom:8px;">${message}</p>
+    ${recordHtml}
+    
+    <div class="summary">
+      <p><strong>📊 Resumo da jornada:</strong></p>
+      <ul>
+        <li>Sobreviveu por: <strong>${state.week} semanas</strong></li>
+        <li>Nível máximo do Ninho: ${state.nestLevel}</li>
+        <li>Ações bem-sucedidas: ${successes} de ${state.log.length}</li>
+        <li>Castas especiais: ⚔️${state.castes.soldada} 🧭${state.castes.exploradora} 🌿${state.castes.cultivadora}</li>
+        <li>Bênçãos conquistadas: ${state.buffs.length}</li>
+        <li>Recursos finais: ${state.food}🍯 ${state.ants}🐜 ${state.nest}🏠 ${state.defense}🛡️</li>
+        <li>Pontuação total: ${totalScore} pontos</li>
+      </ul>
+    </div>
+    <button class="restart-btn" onclick="restart()">🔄 Tentar Novamente</button>
+  `;
+}
+
+function restart() {
+  SFX.click();
+  document.getElementById('endScreen').classList.add('hidden');
+  document.getElementById('speciesScreen').classList.remove('hidden');
+  document.getElementById('playScreen').classList.add('hidden');
+  setWeather('none');
+}
+</script>
+</body>
+</html>
